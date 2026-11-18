@@ -38,5 +38,17 @@ for (const [n, items] of groups) {
     src: Object.fromEntries(items.map(i => [i.src, i.slug])), chapters }));
 }
 cat.sort((a, b) => b.u - a.u);
+// صفحات جاهزة (20 عملًا لكل صفحة): التطبيق يطلب الصفحة التي يحتاجها فقط بدل الكتالوج كله
+const PER = 20;
+fs.rmSync('data/list', { recursive: true, force: true });
+const byTitle = [...cat].sort((x, y) => (norm(x.t) < norm(y.t) ? -1 : 1));
+const meta = { v: 1, per: PER, count: cat.length, updated: new Date().toISOString() };
+for (const [name, arr] of [['latest', cat], ['library', byTitle]]) {
+  fs.mkdirSync(`data/list/${name}`, { recursive: true });
+  const pages = Math.max(1, Math.ceil(arr.length / PER));
+  for (let i = 0; i < pages; i++) fs.writeFileSync(`data/list/${name}/${i + 1}.json`, JSON.stringify(arr.slice(i * PER, (i + 1) * PER)));
+  meta[name + 'Pages'] = pages;
+}
+fs.writeFileSync('data/list/meta.json', JSON.stringify(meta));
 fs.writeFileSync('data/catalog.json', JSON.stringify({ v: 1, updated: new Date().toISOString(), count: cat.length, items: cat }));
 console.log('catalog', cat.length, 'series; merged groups with >1 source:', cat.filter(x => x.s.length > 1).length);
