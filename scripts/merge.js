@@ -42,7 +42,8 @@ cat.sort((a, b) => b.u - a.u);
 const PER = 20;
 fs.rmSync('data/list', { recursive: true, force: true });
 const byTitle = [...cat].sort((x, y) => (norm(x.t) < norm(y.t) ? -1 : 1));
-const meta = { v: 1, per: PER, count: cat.length, updated: new Date().toISOString() };
+const cnt = {}; cat.forEach(x => x.s.forEach(k => (cnt[k] = (cnt[k] || 0) + 1)));
+const meta = { v: 1, per: PER, count: cat.length, cnt, updated: new Date().toISOString() };
 for (const [name, arr] of [['latest', cat], ['library', byTitle]]) {
   fs.mkdirSync(`data/list/${name}`, { recursive: true });
   const pages = Math.max(1, Math.ceil(arr.length / PER));
