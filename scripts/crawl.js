@@ -27,7 +27,7 @@ for (const id of IDS) {
   const todo = [...seen.values()].sort((a, b) => ((db[a.slug] || {}).t || 0) - ((db[b.slug] || {}).t || 0));
   for (const it of todo) {
     const old = db[it.slug];
-    if (old && Date.now() - old.t < FRESH) continue;
+    if (old && Date.now() - old.t < FRESH && Object.keys(old.chapters || {}).length) continue;
     if (done >= CAP) break;
     const d = await parseSeries(it.slug, base);
     if (d.error) { fail++; console.log(id, 'series failed', it.slug, d.error); if (fail > 10 && done === 0) break; continue; }

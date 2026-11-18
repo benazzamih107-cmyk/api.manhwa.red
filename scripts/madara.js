@@ -1,6 +1,6 @@
 // محلل مواقع قالب Madara (قوائم + صفحة العمل + الفصول). لا يخزن أي نطاق: المسارات نسبية.
 import * as cheerio from 'cheerio';
-import { get } from './http.js';
+import { get, UA } from './http.js';
 
 const SKIP = /^(page|feed|ajax|comments?|amp|chapters?)$/i;
 const clean = s => String(s || '').replace(/\s+/g, ' ').trim();
@@ -34,7 +34,10 @@ const imgSrc = i => {
 export const ref = (id, base, url) => {
   if (!url) return '';
   try { const u = new URL(url, base + '/'); const b = new URL(base);
-    return u.host.replace(/^www\./, '') === b.host.replace(/^www\./, '') ? id + ':' + u.pathname + u.search : u.href; } catch { return ''; }
+    const h = u.host.replace(/^www\./, ''), bh = b.host.replace(/^www\./, '');
+    if (h === bh) return id + ':' + u.pathname + u.search;
+    if (h.endsWith('.' + bh)) return id + '+' + h.slice(0, -bh.length - 1) + ':' + u.pathname + u.search;
+    return u.href; } catch { return ''; }
 };
 
 export function parseList(html, base) {
@@ -91,10 +94,18 @@ export async function parseSeries(slug, base) {
   for (const m of r.text.replace(/\\\//g, '/').matchAll(new RegExp('/manga/' + esc + '/(\\d+(?:-\\d+)?)/', 'g')))
     { const k = fmtNum(m[1]); if (!chapters[k]) chapters[k] = `/manga/${slug}/${m[1]}/`; }
   if (Object.keys(chapters).length <= 3) {
-    try {
-      const pr = await fetch(url + 'ajax/chapters/', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', Referer: url }, signal: AbortSignal.timeout(20000) });
-      if (pr.status === 200) collectChapters(cheerio.load(await pr.text()), slug, base, chapters);
-    } catch {}
+    const hdr = { 'User-Agent': UA, 'X-Requested-With': 'XMLHttpRequest', Referer: url, Accept: '*/*', 'Accept-Language': 'ar,en;q=0.8' };
+    const post = async (u, body) => {
+      try {
+        const pr = await fetch(u, { method: 'POST', headers: body ? { ...hdr, 'Content-Type': 'application/x-www-form-urlencoded' } : hdr, body, signal: AbortSignal.timeout(20000) });
+        if (pr.status === 200) collectChapters(cheerio.load(await pr.text()), slug, base, chapters);
+      } catch {}
+    };
+    await post(url + 'ajax/chapters/');
+    if (Object.keys(chapters).length <= 3) {
+      const id = $('#manga-chapters-holder').attr('data-id') || $('.rating-post-id').attr('value') || $('[data-post]').attr('data-post') || $('[data-post-id]').attr('data-post-id') || (/postid-(\d+)/.exec($('body').attr('class') || '') || [])[1];
+      if (id) await post(base + '/wp-admin/admin-ajax.php', new URLSearchParams({ action: 'manga_get_chapters', manga: id }).toString());
+    }
   }
   return { title, cover, desc: desc.slice(0, 1500), type, status, genres: genres.slice(0, 8), chapters };
 }
