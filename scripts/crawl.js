@@ -5,7 +5,7 @@ import { get } from './http.js';
 import { parseList, parseSeries, ref } from './madara.js';
 
 const SRC = JSON.parse(process.env.SOURCES_JSON || '{}');
-const TYPE = { ml: 'madara', mn: 'madara' }; // نضيف أنواعًا ومصادر تدريجيًا
+const TYPE = { ml: 'madara', aq: 'madara', mn: 'madara' }; // نضيف أنواعًا ومصادر تدريجيًا
 const IDS = (process.env.IDS || Object.keys(TYPE).join(',')).split(',').filter(x => TYPE[x] && SRC[x]);
 const PAGES = +process.env.PAGES || 3, CAP = +process.env.DETAIL_CAP || 100, FRESH = (+process.env.FRESH_H || 20) * 3600e3;
 fs.mkdirSync('data/raw', { recursive: true });
