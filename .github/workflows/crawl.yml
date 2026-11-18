@@ -2,7 +2,9 @@ name: Crawl and merge catalog
 on:
   workflow_dispatch:
     inputs:
-      ids: { description: 'مصادر محددة (مثل ml,mn) أو اتركه فارغًا', required: false }
+      ids: { description: 'مصادر محددة (مثل ml,aq) أو اتركه فارغًا', required: false }
+      pages: { description: 'عدد صفحات القائمة لكل مصدر', required: false, default: '3' }
+      cap: { description: 'حد صفحات التفاصيل في التشغيل', required: false, default: '100' }
   schedule:
     - cron: '17 */6 * * *'   # كل 6 ساعات
 concurrency: { group: crawl, cancel-in-progress: false }
@@ -10,7 +12,7 @@ permissions: { contents: write }
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,8 +23,8 @@ jobs:
         env:
           SOURCES_JSON: ${{ secrets.SOURCES_JSON }}
           IDS: ${{ inputs.ids }}
-          PAGES: 3
-          DETAIL_CAP: 100
+          PAGES: ${{ inputs.pages || 3 }}
+          DETAIL_CAP: ${{ inputs.cap || 100 }}
       - name: Merge
         run: node scripts/merge.js
       - name: Commit data
