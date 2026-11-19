@@ -5,6 +5,7 @@ on:
       ids: { description: 'مصادر محددة (مثل ml,aq) أو اتركه فارغًا', required: false }
       pages: { description: 'عدد صفحات القائمة لكل مصدر', required: false, default: '3' }
       cap: { description: 'حد صفحات التفاصيل في التشغيل', required: false, default: '100' }
+      cap_covers: { description: 'حد نسخ الأغلفة في التشغيل', required: false, default: '400' }
   schedule:
     - cron: '17 */6 * * *'   # كل 6 ساعات
 concurrency: { group: crawl, cancel-in-progress: false }
@@ -27,6 +28,12 @@ jobs:
           DETAIL_CAP: ${{ inputs.cap || 100 }}
       - name: Merge
         run: node scripts/merge.js
+      - name: Covers (small copies on our server)
+        run: node scripts/covers.js && node scripts/merge.js
+        continue-on-error: true
+        env:
+          SOURCES_JSON: ${{ secrets.SOURCES_JSON }}
+          COVER_CAP: ${{ inputs.cap_covers || 400 }}
       - name: Commit data
         run: |
           git config user.name "catalog-bot"; git config user.email "bot@users.noreply.github.com"
