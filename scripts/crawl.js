@@ -34,6 +34,10 @@ for (const id of IDS) {
     for (const it of items) if (!seen.has(it.slug)) seen.set(it.slug, it);
     if (TYPE[id] !== 'madara' && seen.size === before) break; // صفحة مكررة = نهاية القائمة
   }
+  if (TYPE[id] === 'shadow' && seen.size <= 24 && MOD.shadow.sitemap) {
+    const sm = await MOD.shadow.sitemap(base); console.log(id, 'sitemap', sm.length);
+    for (const it of sm) if (!seen.has(it.slug)) seen.set(it.slug, it);
+  }
   let done = 0, fail = 0;
   const todo = [...seen.values()].sort((a, b) => ((db[a.slug] || {}).t || 0) - ((db[b.slug] || {}).t || 0));
   for (const it of todo) {

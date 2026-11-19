@@ -32,6 +32,13 @@ jobs:
           git config user.name "catalog-bot"; git config user.email "bot@users.noreply.github.com"
           git add data
           git diff --cached --quiet && { echo "no changes"; exit 0; }
-          git commit -m "Update catalog $(date -u +%F\ %H:%M)"
-          git pull --rebase -q origin main || true
-          git push -q origin HEAD:main
+          git commit -q -m "Update catalog $(date -u +%F\ %H:%M)"
+          for i in 1 2 3 4; do
+            git fetch -q origin main
+            git rebase -q -X theirs origin/main || { git rebase --abort; git reset -q --hard origin/main; echo "rebase failed, aborting this commit"; exit 0; }
+            node scripts/merge.js
+            git add data
+            git diff --cached --quiet || git commit -q -m "Re-merge catalog"
+            git push -q origin HEAD:main && break
+            sleep 5
+          done

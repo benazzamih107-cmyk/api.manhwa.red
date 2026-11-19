@@ -43,6 +43,22 @@ export const shadow = {
     if (!r.ok) return { error: r.status || r.error };
     return { items: cards(cheerio.load(r.text), base, /^\/manga\/([^/?#]+)\/?$/) };
   },
+  // اكتشاف إضافي من خريطة الموقع إن كانت صفحات القائمة لا تتقدم
+  async sitemap(base) {
+    const out = new Set();
+    const read = async (u, depth) => {
+      const r = await get(u, { referer: base + '/', tries: 1 }); if (!r.ok) return;
+      const locs = [...r.text.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
+      for (const l of locs) {
+        const p = pathOf(l, base);
+        const m = p && /^\/manga\/([^/?#]+)\/?$/.exec(p);
+        if (m) out.add(m[1]);
+        else if (depth < 1 && /\.xml(\?|$)/i.test(l) && sameHost(l, base)) await read(l, depth + 1);
+      }
+    };
+    await read(base + '/sitemap.xml', 0);
+    return [...out].map(slug => ({ slug, title: pretty(slug), cover: '' }));
+  },
   async series(base, slug) {
     const r = await get(`${base}/manga/${encodeURIComponent(slug)}`, { referer: base + '/' });
     if (!r.ok) return { error: r.status || r.error };
